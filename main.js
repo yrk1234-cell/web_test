@@ -33,9 +33,6 @@ class SnakeGame {
     // 食物位置
     this.food = this.generateFood();
 
-    // 鼠标目标格（用于跟随鼠标）
-    this.mouseTarget = null;
-
     // 动画插值相关
     this.prevSnake = this.snake.map(s => ({ x: s.x, y: s.y }));
     this.lastMoveTime = 0;
@@ -77,41 +74,31 @@ class SnakeGame {
   }
 
   bindEvents() {
-    // 键盘事件（仅保留空格暂停/继续）
+    // 键盘事件：方向键控制与空格暂停/继续
     document.addEventListener('keydown', (e) => {
-      if (e.key === ' ') {
-        e.preventDefault();
-        this.togglePause();
+      switch (e.key) {
+        case 'ArrowUp':
+          e.preventDefault();
+          this.changeDirection(0, -1);
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          this.changeDirection(0, 1);
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          this.changeDirection(-1, 0);
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          this.changeDirection(1, 0);
+          break;
+        case ' ': // 空格
+          e.preventDefault();
+          this.togglePause();
+          break;
       }
     });
-
-    // 鼠标移动事件：将鼠标位置映射到画布网格
-    const updateTargetFromPoint = (clientX, clientY) => {
-      const rect = this.canvas.getBoundingClientRect();
-      const mx = clientX - rect.left;
-      const my = clientY - rect.top;
-      const tx = Math.max(0, Math.min(this.tileCount - 1, Math.floor(mx / this.gridSize)));
-      const ty = Math.max(0, Math.min(this.tileCount - 1, Math.floor(my / this.gridSize)));
-      this.mouseTarget = { x: tx, y: ty };
-      this.updateDirectionTowardTarget();
-    };
-
-    this.canvas.addEventListener('mousemove', (e) => {
-      updateTargetFromPoint(e.clientX, e.clientY);
-    });
-
-    // 触摸事件支持移动端
-    this.canvas.addEventListener('touchstart', (e) => {
-      if (e.touches && e.touches[0]) {
-        updateTargetFromPoint(e.touches[0].clientX, e.touches[0].clientY);
-      }
-    }, { passive: true });
-
-    this.canvas.addEventListener('touchmove', (e) => {
-      if (e.touches && e.touches[0]) {
-        updateTargetFromPoint(e.touches[0].clientX, e.touches[0].clientY);
-      }
-    }, { passive: true });
 
     // 按钮事件
     document.getElementById('startBtn').addEventListener('click', () => this.startGame());
@@ -160,43 +147,7 @@ class SnakeGame {
     }
   }
 
-  // 根据鼠标目标更新方向（选择水平或垂直的最近路径）
-  updateDirectionTowardTarget() {
-    if (this.gameState !== 'playing' || !this.mouseTarget) return;
-    const head = this.snake[0];
-    const dxCell = this.mouseTarget.x - head.x;
-    const dyCell = this.mouseTarget.y - head.y;
-
-    // 如果已在目标格，保持当前方向
-    if (dxCell === 0 && dyCell === 0) return;
-
-    let newDx = this.dx;
-    let newDy = this.dy;
-
-    // 优先选择距离更大的轴，以更快接近目标
-    if (Math.abs(dxCell) > Math.abs(dyCell)) {
-      newDx = dxCell > 0 ? 1 : -1;
-      newDy = 0;
-    } else if (Math.abs(dyCell) > Math.abs(dxCell)) {
-      newDx = 0;
-      newDy = dyCell > 0 ? 1 : -1;
-    } else {
-      // 距离相等时，尽量避免反向并选择与当前方向一致的轴
-      if (this.dx !== 0) {
-        newDx = dxCell > 0 ? 1 : -1;
-        newDy = 0;
-      } else {
-        newDx = 0;
-        newDy = dyCell > 0 ? 1 : -1;
-      }
-    }
-
-    // 防止180度反向
-    if (this.dx === -newDx && this.dy === -newDy) return;
-
-    this.dx = newDx;
-    this.dy = newDy;
-  }
+  // 移除鼠标跟随逻辑，恢复方向键控制
 
   setDifficulty(level) {
     this.difficulty = level;
@@ -224,15 +175,10 @@ class SnakeGame {
       document.getElementById('startBtn').disabled = true;
       document.getElementById('pauseBtn').disabled = false;
 
-      // 如果尚未有方向，则根据鼠标目标初始化方向
+      // 默认向右移动，直到用户用方向键改变
       if (this.dx === 0 && this.dy === 0) {
-        if (this.mouseTarget) {
-          this.updateDirectionTowardTarget();
-        } else {
-          // 默认向右移动
-          this.dx = 1;
-          this.dy = 0;
-        }
+        this.dx = 1;
+        this.dy = 0;
       }
     }
   }
@@ -293,9 +239,6 @@ class SnakeGame {
 
     // 在移动前记录前一帧蛇的各段位置，用于插值
     this.prevSnake = this.snake.map(s => ({ x: s.x, y: s.y }));
-
-    // 每帧根据鼠标目标更新方向
-    this.updateDirectionTowardTarget();
 
     this.moveSnake();
 
