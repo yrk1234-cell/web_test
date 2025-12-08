@@ -1,4 +1,3 @@
-import { Analytics } from "@vercel/analytics/next"
 // 贪吃蛇游戏主类
 class SnakeGame {
   constructor() {
